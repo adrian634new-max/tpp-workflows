@@ -36,12 +36,14 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
       - name: Install OSV-Scanner
-        run: |
-          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
-          chmod +x osv-scanner
+        run: go install github.com/google/osv-scanner/cmd/osv-scanner@latest
       - name: Run OSV-Scanner
-        run: ./osv-scanner --recursive --skip-git ./
+        run: osv-scanner --recursive --skip-git ./
         continue-on-error: true
 
   gitleaks:
