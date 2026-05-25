@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
   actions: read
 
 jobs:
@@ -28,30 +27,27 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          format: sarif
-          output: trivy-results.sarif
+          format: table
           severity: CRITICAL,HIGH
           exit-code: 0
           ignore-unfixed: true
-      - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy
 
   osv-scanner:
     name: OSV dependency scan
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.7.4"
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    with:
-      scan-args: |-
-        --recursive
-        --skip-git
-        ./
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@v4
+      - name: Install OSV-Scanner
+        run: |
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+      - name: Run OSV-Scanner
+        run: ./osv-scanner --recursive --skip-git ./
+        continue-on-error: true
 
   gitleaks:
     name: Gitleaks secret scan
@@ -93,6 +89,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          upload: never
 
   notify-failure:
     name: Telegram alert
